@@ -3,9 +3,15 @@ const cors = require('cors');
 const { init } = require('wx-server-sdk');
 require('dotenv').config();
 
+// 小程序配置
+const appConfig = {
+  appId: process.env.WECHAT_APPID || 'wxc7d9247d7be6b8a4',
+  cloudEnv: process.env.CLOUD_ENV || 'cloudbase-d7gx9tb5ee46a6237'
+};
+
 // 初始化微信云开发
 const cloud = init({
-  env: process.env.CLOUD_ENV || 'cloudbase-d7gx9tb5ee46a6237'
+  env: appConfig.cloudEnv
 });
 
 const db = cloud.database();
@@ -26,7 +32,8 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'daikebao-backend',
-    env: process.env.CLOUD_ENV
+    appId: appConfig.appId,
+    cloudEnv: appConfig.cloudEnv
   });
 });
 
@@ -35,6 +42,7 @@ app.get('/', (req, res) => {
   res.json({
     message: '欢迎使用代课宝后端服务',
     version: '1.0.0',
+    appId: appConfig.appId,
     endpoints: {
       health: '/health',
       auth: {
@@ -67,7 +75,7 @@ const authMiddleware = async (req, res, next) => {
   }
   
   try {
-    // 验证token（简化处理，实际应使用JWT）
+    // 验证token
     const user = await db.collection('user').where({
       _id: token
     }).get();
@@ -91,7 +99,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { code } = req.body;
     
     // 模拟微信登录
-    console.log('登录请求:', { code });
+    console.log('登录请求:', { code, appId: appConfig.appId });
     
     // 模拟用户数据
     const mockUser = {
@@ -305,7 +313,8 @@ app.post('/api/payment/prepay', authMiddleware, async (req, res) => {
         prepayId,
         paySign: 'mock_sign',
         timeStamp: Date.now().toString(),
-        nonceStr: 'mock_nonce'
+        nonceStr: 'mock_nonce',
+        appId: appConfig.appId
       },
       message: '预支付成功'
     });
@@ -414,6 +423,8 @@ app.use((err, req, res, next) => {
 // 启动服务器
 app.listen(port, () => {
   console.log(`服务器运行在端口 ${port}`);
+  console.log(`小程序ID: ${appConfig.appId}`);
+  console.log(`云开发环境: ${appConfig.cloudEnv}`);
   console.log(`健康检查: http://localhost:${port}/health`);
   console.log(`API文档: http://localhost:${port}/`);
 });
